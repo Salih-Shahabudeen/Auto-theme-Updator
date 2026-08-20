@@ -1,0 +1,10 @@
+{
+    "mode": "custom",
+    "custom_palette": {
+        "accent": "#000205",
+        "background": "#6E1414",
+        "foreground": "#FEFEFE",
+        "highlight": "#FFFFFF",
+        "window": "#5454C1"
+    }
+}
