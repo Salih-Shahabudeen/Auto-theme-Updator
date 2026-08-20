@@ -29,6 +29,10 @@ CUSTOM_PALETTE = {
     "window": "#5454C1",
 }
 
+# Immutable snapshot of the palette written in this source file.
+# This lets us detect when you manually edit CUSTOM_PALETTE later.
+SOURCE_CUSTOM_PALETTE = dict(CUSTOM_PALETTE)
+
 SEMANTIC = {
     "red": "#F38BA8",
     "green": "#A6E3A1",
@@ -83,10 +87,19 @@ def validate_palette(colors):
 
 
 def save_settings():
+    """Persist GUI state without hiding future manual source edits.
+
+    `source_custom_palette` records the CUSTOM_PALETTE that existed in
+    color_picker.py when the settings were saved.  On the next launch,
+    if the source palette has changed, the source-code edit wins over
+    the older saved GUI palette.
+    """
     data = {
         "mode": "custom" if USE_CUSTOM_COLORS else "default",
         "custom_palette": CUSTOM_PALETTE,
+        "source_custom_palette": SOURCE_CUSTOM_PALETTE,
     }
+
     SETTINGS_FILE.write_text(
         json.dumps(data, indent=4) + "\n",
         encoding="utf-8",
@@ -96,19 +109,56 @@ def save_settings():
 def load_settings():
     global USE_CUSTOM_COLORS
 
+    source_now = validate_palette(SOURCE_CUSTOM_PALETTE)
+
     if SETTINGS_FILE.exists():
         try:
-            data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-            stored_custom = data.get("custom_palette", {})
-            if stored_custom:
-                CUSTOM_PALETTE.update(validate_palette(stored_custom))
-            USE_CUSTOM_COLORS = data.get("mode", "custom") == "custom"
+            data = json.loads(
+                SETTINGS_FILE.read_text(encoding="utf-8")
+            )
+
+            saved_source = data.get("source_custom_palette")
+            saved_custom = data.get("custom_palette", {})
+
+            source_was_manually_changed = (
+                saved_source is None
+                or validate_palette(saved_source) != source_now
+            )
+
+            if source_was_manually_changed:
+                # A manual edit to CUSTOM_PALETTE in this Python file
+                # always wins over stale theme_settings.json values.
+                CUSTOM_PALETTE.clear()
+                CUSTOM_PALETTE.update(source_now)
+            elif saved_custom:
+                # No source-code change: restore the user's most recent
+                # GUI-picked custom colors.
+                CUSTOM_PALETTE.clear()
+                CUSTOM_PALETTE.update(
+                    validate_palette(saved_custom)
+                )
+
+            USE_CUSTOM_COLORS = (
+                data.get("mode", "custom") == "custom"
+            )
+
         except Exception:
-            # A damaged settings file should never stop the updater.
+            # Invalid/stale settings should never prevent the updater
+            # from using the palette defined in this source file.
+            CUSTOM_PALETTE.clear()
+            CUSTOM_PALETTE.update(source_now)
             USE_CUSTOM_COLORS = True
 
+    else:
+        CUSTOM_PALETTE.clear()
+        CUSTOM_PALETTE.update(source_now)
+
     PALETTE.clear()
-    PALETTE.update(CUSTOM_PALETTE if USE_CUSTOM_COLORS else DEFAULT_PALETTE)
+    PALETTE.update(
+        CUSTOM_PALETTE
+        if USE_CUSTOM_COLORS
+        else DEFAULT_PALETTE
+    )
 
 
 def use_default_palette(persist=True):

@@ -106,3 +106,30 @@ Spotify / Spicetify now:
        spicetify apply
 
 The update log shows the exact Spicetify command and any CLI error.
+
+
+V7 palette precedence fix
+-------------------------
+Previously, theme_settings.json could override a manual edit to
+CUSTOM_PALETTE in color_picker.py.
+
+V7 detects source-code palette changes:
+  - If CUSTOM_PALETTE in color_picker.py changed, that new palette wins.
+  - If CUSTOM_PALETTE did not change, the most recent GUI-picked custom
+    colors are restored normally.
+  - Default mode remains read-only.
+
+So editing CUSTOM_PALETTE manually and relaunching the app now updates
+the GUI and all selected applications to those new values.
+
+
+V8 application selection fix
+----------------------------
+The Apply Theme action now snapshots the checkbox states at the exact
+moment you click Apply Theme.
+
+Unchecked applications are passed to updater_core.py as excluded and
+the Update Log shows both GUI selection state and core RUN/SKIP state.
+
+Application checkboxes are temporarily disabled while an update is
+running so their state cannot change mid-run.

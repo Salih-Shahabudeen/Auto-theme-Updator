@@ -52,7 +52,7 @@ class QueueWriter(io.TextIOBase):
 class ThemeUpdaterGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Theme Updater V6")
+        self.title("Theme Updater V8")
         self.geometry("900x760")
         self.minsize(820, 690)
 
@@ -76,6 +76,7 @@ class ThemeUpdaterGUI(tk.Tk):
         self.swatch_buttons = {}
         self.color_entries = {}
         self.pick_buttons = {}
+        self.app_checkbuttons = {}
 
         self._build_ui()
         self._apply_mode_to_controls()
@@ -235,17 +236,19 @@ class ThemeUpdaterGUI(tk.Tk):
             row = i // 3
             column = i % 3
 
-            ttk.Checkbutton(
+            app_check = ttk.Checkbutton(
                 apps_box,
                 text=label,
                 variable=self.app_vars[key],
-            ).grid(
+            )
+            app_check.grid(
                 row=row,
                 column=column,
                 sticky="w",
                 padx=(0, 28),
                 pady=3,
             )
+            self.app_checkbuttons[key] = app_check
 
         button_row = (len(APP_INFO) + 2) // 3
 
@@ -291,6 +294,13 @@ class ThemeUpdaterGUI(tk.Tk):
 
         self.log.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+
+    def _set_app_controls_enabled(self, enabled):
+        for widget in self.app_checkbuttons.values():
+            if enabled:
+                widget.state(["!disabled"])
+            else:
+                widget.state(["disabled"])
 
     def _set_all_apps(self, value):
         for var in self.app_vars.values():
@@ -436,9 +446,13 @@ class ThemeUpdaterGUI(tk.Tk):
 
         selected = [
             key
-            for key in APP_KEYS
+            for key, _label in APP_INFO
             if self.app_vars[key].get()
         ]
+
+        # Freeze the checkbox state at click time so later UI changes cannot
+        # affect the worker thread.
+        selected = tuple(selected)
 
         if not selected:
             messagebox.showwarning(
@@ -468,7 +482,15 @@ class ThemeUpdaterGUI(tk.Tk):
 
         self._refresh_preview()
         self._clear_log()
+
+        self._append_log("Selected applications:\n")
+        for key, label in APP_INFO:
+            state = "ON " if key in selected else "OFF"
+            self._append_log(f"  [{state}] {label}\n")
+        self._append_log("\n")
+
         self.apply_button.state(["disabled"])
+        self._set_app_controls_enabled(False)
         self.status_var.set("Updating...")
 
         self.worker = threading.Thread(
@@ -515,6 +537,7 @@ class ThemeUpdaterGUI(tk.Tk):
 
                 elif kind == "done":
                     self.apply_button.state(["!disabled"])
+                    self._set_app_controls_enabled(True)
                     self.status_var.set("Completed.")
                     self._append_log("\n" + payload + "\n")
                     messagebox.showinfo(
@@ -525,6 +548,7 @@ class ThemeUpdaterGUI(tk.Tk):
 
                 elif kind == "error":
                     self.apply_button.state(["!disabled"])
+                    self._set_app_controls_enabled(True)
                     self.status_var.set("Update failed.")
                     self._append_log("\nERROR: " + payload + "\n")
                     messagebox.showerror(

@@ -24,7 +24,7 @@ def run_updates(selected):
     selected may be any iterable containing APP_KEYS.
     """
 
-    selected = set(selected)
+    selected = frozenset(selected)
 
     unknown = selected.difference(APP_KEYS)
     if unknown:
@@ -43,6 +43,11 @@ def run_updates(selected):
     print("=" * 60)
     print("UPDATING THEMES")
     print("=" * 60)
+
+    print("Selection received by updater core:")
+    for key in APP_KEYS:
+        print(f"  {'RUN ' if key in selected else 'SKIP'} {key}")
+    print()
 
     browser_work = bool({"vivaldi", "simple_new_tab"} & selected)
 
