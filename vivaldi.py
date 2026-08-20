@@ -1,3 +1,4 @@
+import os
 """Vivaldi browser theme updater and browser process control."""
 
 import json
@@ -8,8 +9,19 @@ from pathlib import Path
 from color_picker import PALETTE
 from common import backup_file
 
-VIVALDI_PREFERENCES = Path(
-    r"C:\Users\SdSNu\AppData\Local\Vivaldi\User Data\Default\Preferences"
+LOCALAPPDATA = Path(
+    os.environ.get(
+        "LOCALAPPDATA",
+        Path.home() / "AppData" / "Local",
+    )
+)
+
+VIVALDI_PREFERENCES = (
+    LOCALAPPDATA
+    / "Vivaldi"
+    / "User Data"
+    / "Default"
+    / "Preferences"
 )
 VIVALDI_EXE = VIVALDI_PREFERENCES.parents[2] / "Application" / "vivaldi.exe"
 THEME_NAME = "Catppuccin Mocha Lavender Amoled"

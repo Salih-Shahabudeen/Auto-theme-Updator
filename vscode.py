@@ -1,3 +1,4 @@
+import os
 """VS Code Catppuccin theme updater."""
 
 import json
@@ -6,8 +7,18 @@ from pathlib import Path
 from color_picker import PALETTE, SEMANTIC, offset_hex
 from common import backup_file
 
-VS_CODE_SETTINGS = Path(
-    r"C:\Users\SdSNu\AppData\Roaming\Code\User\settings.json"
+APPDATA = Path(
+    os.environ.get(
+        "APPDATA",
+        Path.home() / "AppData" / "Roaming",
+    )
+)
+
+VS_CODE_SETTINGS = (
+    APPDATA
+    / "Code"
+    / "User"
+    / "settings.json"
 )
 
 def update_vscode():

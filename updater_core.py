@@ -3,6 +3,7 @@
 from color_picker import PALETTE
 from discord import update_discord
 from simple_new_tab import update_simple_new_tab
+from spicetify import update_spicetify
 from vivaldi import close_vivaldi, relaunch_vivaldi, update_vivaldi
 from vscode import update_vscode
 from wezterm import update_wezterm
@@ -13,6 +14,7 @@ APP_KEYS = (
     "discord",
     "vscode",
     "wezterm",
+    "spicetify",
 )
 
 
@@ -63,12 +65,16 @@ def run_updates(selected):
     if "wezterm" in selected:
         update_wezterm()
 
+    if "spicetify" in selected:
+        update_spicetify()
+
     labels = {
         "vivaldi": "Vivaldi",
         "simple_new_tab": "Simple New Tab",
         "discord": "Discord/Vencord",
         "vscode": "VS Code",
         "wezterm": "WezTerm",
+        "spicetify": "Spotify / Spicetify",
     }
 
     print()

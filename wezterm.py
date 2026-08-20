@@ -1,3 +1,4 @@
+import os
 """WezTerm theme updater, including elevated writes to Program Files."""
 
 import re
@@ -9,7 +10,14 @@ from pathlib import Path
 from color_picker import PALETTE
 from common import backup_file
 
-WEZTERM_CONFIG = Path(r"C:\Program Files\WezTerm\wezterm.lua")
+PROGRAMFILES = Path(
+    os.environ.get(
+        "ProgramFiles",
+        r"C:\Program Files",
+    )
+)
+
+WEZTERM_CONFIG = PROGRAMFILES / "WezTerm" / "wezterm.lua"
 
 def find_lua_table_assignment_span(lua, assignment_name):
     pattern = re.compile(

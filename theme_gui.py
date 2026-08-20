@@ -25,6 +25,7 @@ APP_INFO = (
     ("discord", "Discord / Vencord"),
     ("vscode", "VS Code"),
     ("wezterm", "WezTerm"),
+    ("spicetify", "Spotify / Spicetify"),
 )
 
 
@@ -51,7 +52,7 @@ class QueueWriter(io.TextIOBase):
 class ThemeUpdaterGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Theme Updater")
+        self.title("Theme Updater V6")
         self.geometry("900x760")
         self.minsize(820, 690)
 
@@ -231,23 +232,34 @@ class ThemeUpdaterGUI(tk.Tk):
         apps_box.pack(fill="x", pady=(12, 0))
 
         for i, (key, label) in enumerate(APP_INFO):
+            row = i // 3
+            column = i % 3
+
             ttk.Checkbutton(
                 apps_box,
                 text=label,
                 variable=self.app_vars[key],
-            ).grid(row=0, column=i, sticky="w", padx=(0, 18))
+            ).grid(
+                row=row,
+                column=column,
+                sticky="w",
+                padx=(0, 28),
+                pady=3,
+            )
+
+        button_row = (len(APP_INFO) + 2) // 3
 
         ttk.Button(
             apps_box,
             text="Select All",
             command=lambda: self._set_all_apps(True),
-        ).grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ).grid(row=button_row, column=0, sticky="w", pady=(10, 0))
 
         ttk.Button(
             apps_box,
             text="Clear All",
             command=lambda: self._set_all_apps(False),
-        ).grid(row=1, column=1, sticky="w", pady=(10, 0))
+        ).grid(row=button_row, column=1, sticky="w", pady=(10, 0))
 
         action_row = ttk.Frame(outer)
         action_row.pack(fill="x", pady=(14, 0))

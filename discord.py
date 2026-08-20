@@ -1,3 +1,4 @@
+import os
 """Discord/Vencord QuickCSS theme updater."""
 
 import re
@@ -6,8 +7,18 @@ from pathlib import Path
 from color_picker import PALETTE, SEMANTIC, make_ramp, oklch
 from common import backup_file
 
-DISCORD_THEME = Path(
-    r"C:\Users\SdSNu\AppData\Roaming\Vencord\settings\quickCss.css"
+APPDATA = Path(
+    os.environ.get(
+        "APPDATA",
+        Path.home() / "AppData" / "Roaming",
+    )
+)
+
+DISCORD_THEME = (
+    APPDATA
+    / "Vencord"
+    / "settings"
+    / "quickCss.css"
 )
 
 def generate_discord_colors():
