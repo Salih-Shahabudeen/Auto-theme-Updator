@@ -26,6 +26,8 @@ APP_INFO = (
     ("vscode", "VS Code"),
     ("wezterm", "WezTerm"),
     ("spicetify", "Spotify / Spicetify"),
+    ("zebar", "Zebar"),
+    ("windhawk", "Windhawk Taskbar Styler"),
 )
 
 
@@ -52,9 +54,9 @@ class QueueWriter(io.TextIOBase):
 class ThemeUpdaterGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Theme Updater V8")
-        self.geometry("900x760")
-        self.minsize(820, 690)
+        self.title("Theme Updater V11")
+        self.geometry("900x835")
+        self.minsize(820, 760)
 
         self.output_queue = queue.Queue()
         self.worker = None
@@ -72,6 +74,11 @@ class ThemeUpdaterGUI(tk.Tk):
             key: tk.BooleanVar(value=True)
             for key, _ in APP_INFO
         }
+
+        self.zebar_transparency_var = tk.IntVar(
+            value=color_picker.ZEBAR_TRANSPARENCY
+        )
+        self.zebar_transparency_text = tk.StringVar()
 
         self.swatch_buttons = {}
         self.color_entries = {}
@@ -240,6 +247,7 @@ class ThemeUpdaterGUI(tk.Tk):
                 apps_box,
                 text=label,
                 variable=self.app_vars[key],
+                command=self._on_app_selection_changed,
             )
             app_check.grid(
                 row=row,
@@ -263,6 +271,53 @@ class ThemeUpdaterGUI(tk.Tk):
             text="Clear All",
             command=lambda: self._set_all_apps(False),
         ).grid(row=button_row, column=1, sticky="w", pady=(10, 0))
+
+        zebar_box = ttk.LabelFrame(outer, text="Zebar Settings", padding=12)
+        zebar_box.pack(fill="x", pady=(12, 0))
+        zebar_box.columnconfigure(1, weight=1)
+
+        ttk.Label(
+            zebar_box,
+            text="Transparency",
+            font=("Segoe UI", 10, "bold"),
+            width=14,
+        ).grid(row=0, column=0, sticky="w")
+
+        self.zebar_scale = tk.Scale(
+            zebar_box,
+            from_=0,
+            to=100,
+            orient="horizontal",
+            resolution=1,
+            showvalue=False,
+            variable=self.zebar_transparency_var,
+            command=self._on_zebar_transparency_changed,
+            highlightthickness=0,
+            bd=0,
+            length=390,
+        )
+        self.zebar_scale.grid(row=0, column=1, sticky="ew", padx=(8, 12))
+
+        self.zebar_transparency_value = ttk.Label(
+            zebar_box,
+            textvariable=self.zebar_transparency_text,
+            width=8,
+            anchor="e",
+        )
+        self.zebar_transparency_value.grid(row=0, column=2, sticky="e")
+
+        ttk.Label(
+            zebar_box,
+            text=(
+                "0% = opaque, 100% = fully transparent. "
+                "Text and icons stay visible."
+            ),
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
+
+        self._on_zebar_transparency_changed(
+            self.zebar_transparency_var.get()
+        )
+        self._update_zebar_controls_state()
 
         action_row = ttk.Frame(outer)
         action_row.pack(fill="x", pady=(14, 0))
@@ -302,9 +357,31 @@ class ThemeUpdaterGUI(tk.Tk):
             else:
                 widget.state(["disabled"])
 
+        if enabled:
+            self._update_zebar_controls_state()
+        else:
+            self.zebar_scale.configure(state="disabled")
+
     def _set_all_apps(self, value):
         for var in self.app_vars.values():
             var.set(value)
+        self._update_zebar_controls_state()
+
+    def _on_app_selection_changed(self):
+        self._update_zebar_controls_state()
+
+    def _update_zebar_controls_state(self):
+        if not hasattr(self, "zebar_scale"):
+            return
+        enabled = self.app_vars["zebar"].get()
+        self.zebar_scale.configure(state="normal" if enabled else "disabled")
+
+    def _on_zebar_transparency_changed(self, value):
+        try:
+            transparency = color_picker.normalize_zebar_transparency(value)
+        except ValueError:
+            transparency = color_picker.DEFAULT_ZEBAR_TRANSPARENCY
+        self.zebar_transparency_text.set(f"{transparency}%")
 
     def _current_display_palette(self):
         if self.mode_var.get() == "default":
@@ -472,6 +549,11 @@ class ThemeUpdaterGUI(tk.Tk):
                     self.color_vars[key].set(value)
             else:
                 color_picker.use_default_palette(persist=True)
+
+            zebar_transparency = color_picker.set_zebar_transparency(
+                self.zebar_transparency_var.get(),
+                persist=True,
+            )
         except ValueError as exc:
             messagebox.showerror(
                 "Invalid color",
@@ -487,6 +569,10 @@ class ThemeUpdaterGUI(tk.Tk):
         for key, label in APP_INFO:
             state = "ON " if key in selected else "OFF"
             self._append_log(f"  [{state}] {label}\n")
+        if "zebar" in selected:
+            self._append_log(
+                f"  Zebar transparency: {zebar_transparency}%\n"
+            )
         self._append_log("\n")
 
         self.apply_button.state(["disabled"])
@@ -495,19 +581,22 @@ class ThemeUpdaterGUI(tk.Tk):
 
         self.worker = threading.Thread(
             target=self._run_worker,
-            args=(selected,),
+            args=(selected, zebar_transparency),
             daemon=True,
         )
         self.worker.start()
 
-    def _run_worker(self, selected):
+    def _run_worker(self, selected, zebar_transparency):
         writer = QueueWriter(self.output_queue)
         old_stdout, old_stderr = sys.stdout, sys.stderr
 
         try:
             sys.stdout = writer
             sys.stderr = writer
-            run_updates(selected)
+            run_updates(
+                selected,
+                zebar_transparency=zebar_transparency,
+            )
         except Exception as exc:
             self.output_queue.put(("error", f"{type(exc).__name__}: {exc}"))
         else:

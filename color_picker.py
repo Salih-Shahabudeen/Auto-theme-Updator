@@ -43,6 +43,10 @@ SEMANTIC = {
 PALETTE = dict(CUSTOM_PALETTE)
 USE_CUSTOM_COLORS = True
 
+# Zebar-specific UI preference. 0 = opaque, 100 = fully transparent.
+DEFAULT_ZEBAR_TRANSPARENCY = 40
+ZEBAR_TRANSPARENCY = DEFAULT_ZEBAR_TRANSPARENCY
+
 _HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
@@ -86,6 +90,26 @@ def validate_palette(colors):
     return {name: normalize_hex(colors[name]) for name in required}
 
 
+def normalize_zebar_transparency(value):
+    """Return a whole-number Zebar transparency percentage from 0 to 100."""
+    try:
+        value = int(round(float(value)))
+    except (TypeError, ValueError):
+        raise ValueError("Zebar transparency must be a number from 0 to 100.")
+
+    if not 0 <= value <= 100:
+        raise ValueError("Zebar transparency must be between 0 and 100.")
+    return value
+
+
+def set_zebar_transparency(value, persist=True):
+    global ZEBAR_TRANSPARENCY
+    ZEBAR_TRANSPARENCY = normalize_zebar_transparency(value)
+    if persist:
+        save_settings()
+    return ZEBAR_TRANSPARENCY
+
+
 def save_settings():
     """Persist GUI state without hiding future manual source edits.
 
@@ -98,6 +122,7 @@ def save_settings():
         "mode": "custom" if USE_CUSTOM_COLORS else "default",
         "custom_palette": CUSTOM_PALETTE,
         "source_custom_palette": SOURCE_CUSTOM_PALETTE,
+        "zebar_transparency": ZEBAR_TRANSPARENCY,
     }
 
     SETTINGS_FILE.write_text(
@@ -107,7 +132,7 @@ def save_settings():
 
 
 def load_settings():
-    global USE_CUSTOM_COLORS
+    global USE_CUSTOM_COLORS, ZEBAR_TRANSPARENCY
 
     source_now = validate_palette(SOURCE_CUSTOM_PALETTE)
 
@@ -141,6 +166,9 @@ def load_settings():
             USE_CUSTOM_COLORS = (
                 data.get("mode", "custom") == "custom"
             )
+            ZEBAR_TRANSPARENCY = normalize_zebar_transparency(
+                data.get("zebar_transparency", DEFAULT_ZEBAR_TRANSPARENCY)
+            )
 
         except Exception:
             # Invalid/stale settings should never prevent the updater
@@ -148,10 +176,12 @@ def load_settings():
             CUSTOM_PALETTE.clear()
             CUSTOM_PALETTE.update(source_now)
             USE_CUSTOM_COLORS = True
+            ZEBAR_TRANSPARENCY = DEFAULT_ZEBAR_TRANSPARENCY
 
     else:
         CUSTOM_PALETTE.clear()
         CUSTOM_PALETTE.update(source_now)
+        ZEBAR_TRANSPARENCY = DEFAULT_ZEBAR_TRANSPARENCY
 
     PALETTE.clear()
     PALETTE.update(

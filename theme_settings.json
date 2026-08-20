@@ -13,5 +13,6 @@
         "foreground": "#FEFEFE",
         "highlight": "#3B1E60",
         "window": "#5454C1"
-    }
+    },
+    "zebar_transparency": 95
 }
